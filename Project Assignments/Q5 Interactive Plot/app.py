@@ -62,9 +62,10 @@ def filtered_data(platforms, year_range, cap_flag, q):
 
     if cap_flag:
         cap_value = temp[SALES_COL].quantile(q)
-        temp["Plot_Sales"] = np.minimum(temp[SALES_COL], cap_value)
+        temp["Capped_Sales"] = np.minimum(temp[SALES_COL], cap_value)
+        temp["Log_Sales"] = np.log1p(temp["Capped_Sales"])
     else:
-        temp["Plot_Sales"] = temp[SALES_COL]
+        temp["Log_Sales"] = np.log1p(temp[SALES_COL])
 
     return temp
 
@@ -77,18 +78,19 @@ def dashboard_plot(platforms, year_range, cap_flag, q):
     plot = px.box(
         temp,
         x=PLATFORM_COL,
-        y="Plot_Sales",
+        y="Log_Sales",
         points="outliers",
         hover_name=NAME_COL,
         hover_data={
             GENRE_COL: True,
             YEAR_COL: True,
             SALES_COL: ":.2f",
+            "Log_Sales": ":.2f",
             PLATFORM_COL: False
         },
-        title="Distribution of Global Video Game Sales by Platform",
+        title="Distribution of Global Video Game Sales by Platform (Log Scale)",
         labels={
-            "Plot_Sales": "Global Sales (millions)",
+            "Log_Sales": "log(1 + Global Sales)",
             PLATFORM_COL: "Platform"
         }
     )
@@ -99,10 +101,10 @@ def dashboard_table(platforms, year_range, cap_flag, q):
     temp = filtered_data(platforms, year_range, cap_flag, q)
 
     if temp.empty:
-        return pd.DataFrame(columns=[NAME_COL, PLATFORM_COL, GENRE_COL, YEAR_COL, SALES_COL])
+        return pd.DataFrame(columns=[NAME_COL, PLATFORM_COL, GENRE_COL, YEAR_COL, "Log_Sales"])
 
-    return temp[[NAME_COL, PLATFORM_COL, GENRE_COL, YEAR_COL, SALES_COL]] \
-        .sort_values(SALES_COL, ascending=False) \
+    return temp[[NAME_COL, PLATFORM_COL, GENRE_COL, YEAR_COL, "Log_Sales"]] \
+        .sort_values("Log_Sales", ascending=False) \
         .head(15) \
         .reset_index(drop=True)
 
